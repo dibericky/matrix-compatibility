@@ -54,6 +54,7 @@ struct ServiceCompatibility {
 }
 
 async fn get_service_matrix (service: Service) -> ServiceCompatibility {
+    // TODO: retrieve by API call
     let pipeline = get_pipeline_ci().await;
 
     let mut compatibility_vec : Vec<CompatibilityItem> = Vec::new();
@@ -71,6 +72,7 @@ async fn get_service_matrix (service: Service) -> ServiceCompatibility {
 }
 
 fn main() {
+    // TODO: read from config file
     let my_service = Service {
         name: String::from("my-service"),
         matrix: Vec::from([MatrixItem{
