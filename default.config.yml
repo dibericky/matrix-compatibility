@@ -1,0 +1,14 @@
+gitlab_base_api_host: "https://MY_GITLAB_API_HOST.com"
+services:
+  - name: my-service
+    ci: 
+      project_id: "platform%2Fmy-group%2Fmy-service"
+    matrix: 
+     - path: test.parallel.matrix[0].MONGO_VERSION
+       name: mongo
+  - name: another-service
+    ci: 
+      project_id: "platform%2Fgroup%2Fanother-service"
+    matrix: 
+     - path: test.parallel.matrix[0].MONGO_IMAGE
+       name: mongo

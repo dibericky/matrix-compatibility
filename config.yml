@@ -1,0 +1,14 @@
+gitlab_base_api_host: "https://git.tools.mia-platform.eu"
+services:
+  - name: crud-service
+    ci: 
+      project_id: "platform%2Fcore%2Fcrud-service"
+    matrix: 
+     - path: test.parallel.matrix[0].MONGO_VERSION
+       name: mongo
+  - name: real-time-updater
+    ci: 
+      project_id: "platform%2Ffast-data%2Freal-time-updater"
+    matrix: 
+     - path: test.parallel.matrix[0].MONGO_IMAGE
+       name: mongo

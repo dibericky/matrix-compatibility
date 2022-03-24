@@ -1,12 +1,22 @@
-Given a service like:
+Given a configuration like, written in a file named config.yml:
 ```yaml
-name: my-service
-matrix:
-    - path: "test.parallel.matrix[0].MONGO_VERSION"
-      name: mongo
+gitlab_base_api_host: "https://MY_GITLAB_API_HOST.com"
+services:
+  - name: my-service
+    ci: 
+      project_id: "platform%2Fmy-group%2Fmy-service"
+    matrix: 
+     - path: test.parallel.matrix[0].MONGO_VERSION
+       name: mongo
+  - name: another-service
+    ci: 
+      project_id: "platform%2Fgroup%2Fanother-service"
+    matrix: 
+     - path: test.parallel.matrix[0].MONGO_IMAGE
+       name: mongo
 ```
 
-with a gitlab-ci associated pipeline like:
+with a gitlab-ci associated pipeline like this, retrieved by api call:
 
 ```yaml
 install-dependencies:
@@ -31,5 +41,7 @@ will be returned:
 
 ```
 Service my-service
+Name: mongo, Compatible: ["4.0", "4.4", "5.0"]
+Service another-service
 Name: mongo, Compatible: ["4.0", "4.4", "5.0"]
 ```
