@@ -120,19 +120,6 @@ fn get_table_by_subject (subject: &str, rows: &Vec<CompatibilityRow>) -> Vec<Vec
     }
     table
 }
-type ServiceSupportedVersion = HashMap<String, bool>;
-
-fn get_services_and_versions_by_subject(rows: &Vec<CompatibilityRow>) {
-    
-}
-
-/**
- {
-     "mongo": {
-        "crud-service": {"4.0": true, "4.4": true, "5.0", true}
-    }
- }
- */
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -144,9 +131,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         push_service_compatibility_rows(&mut compatibility_vec, service, &config.gitlab_base_api_host).await;        
     }
 
+    // TODO: for-each subject
     let version_columns = get_table_by_subject("mongo", &compatibility_vec);
-
-    let s = serde_yaml::to_string(&compatibility_vec)?;
 
     let table = MarkdownTable::new(
         version_columns
@@ -156,7 +142,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = "output.md";
     let mut output = File::create(path)?;
     let line = table.as_markdown().unwrap();
-    write!(output, "{}", line);
+    write!(output, "{}", line).unwrap();
 
     Ok(())
 }
