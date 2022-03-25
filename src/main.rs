@@ -6,6 +6,7 @@ use table_builder::{CompatibilityRow};
 use markdown_table::MarkdownTable;
 use std::fs::File;
 use std::io::prelude::*;
+use std::env;
 
 use serde::{Deserialize};
 
@@ -57,8 +58,12 @@ async fn push_service_compatibility_rows<'a> (compatibility_vec : &mut Vec<Compa
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // TODO: make config file path configurable by env
-    let f = std::fs::File::open("config.yml").unwrap();
+    let config_file_path = match env::var("CONFIG_FILE_PATH") {
+        Ok(v) => v,
+        Err(_) => String::from("config.yml")
+    };
+
+    let f = std::fs::File::open(config_file_path).unwrap();
     let config : Config = serde_yaml::from_reader(f).unwrap();
 
     let mut compatibility_vec : Vec<CompatibilityRow> = Vec::new();

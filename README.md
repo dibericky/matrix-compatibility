@@ -1,6 +1,6 @@
 ## How to run
 
-Given a configuration like, written in a file named `config.yml`:
+Given a configuration like, written in a file named `config.yml` in the `/configs` folder:
 ```yaml
 gitlab_base_api_host: "https://MY_GITLAB_API_HOST.com"
 services:
@@ -40,7 +40,7 @@ test-latest:
 ```    
 if you run:
 ```
-GITLAB_TOKEN=MY_TOKEN cargo run
+CONFIG_FILE_PATH=configs/config.yml GITLAB_TOKEN=MY_TOKEN cargo run
 ```
 
 will be returned:
