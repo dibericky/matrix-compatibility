@@ -1,4 +1,6 @@
-Given a configuration like, written in a file named config.yml:
+## How to run
+
+Given a configuration like, written in a file named `config.yml`:
 ```yaml
 gitlab_base_api_host: "https://MY_GITLAB_API_HOST.com"
 services:
@@ -36,12 +38,11 @@ test-latest:
     - name: mongo
       alias: mongo
 ```    
+if you run:
+```
+GITLAB_TOKEN=MY_TOKEN cargo run
+```
 
 will be returned:
 
-```
-Service my-service
-Name: mongo, Compatible: ["4.0", "4.4", "5.0"]
-Service another-service
-Name: mongo, Compatible: ["4.0", "4.4", "5.0"]
-```
+<table><tr><td>mongo<td>4.0<td>4.4<td>5.0<tr><td>my-service<td>true<td>true<td>true<tr><td>another-service<td>true<td>true<td>false</table>
