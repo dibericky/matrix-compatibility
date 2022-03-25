@@ -1,7 +1,10 @@
 mod gitlab_api;
 mod gitlab_ci;
 
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap}};
+use markdown_table::MarkdownTable;
+use std::fs::File;
+use std::io::prelude::*;
 
 use serde::{Deserialize, Serialize};
 
@@ -63,24 +66,73 @@ async fn push_service_compatibility_rows<'a> (compatibility_vec : &mut Vec<Compa
     };
 }
 
-fn get_services_supported_version_by_subject (subject: &str, rows: &Vec<CompatibilityRow>) -> Vec<String> {
+fn get_table_rows_and_column_by_subject<'a, 'b > (subject: &str, rows: &'a Vec<CompatibilityRow>) -> (Vec<String>, Vec<String>) {
+    let mut versions : Vec<String> = Vec::new();
+    let mut services_names : Vec<String> = Vec::new();
+
     rows.iter()
         .filter(|row| row.compatibility_subject == subject)
-        .map(|row| String::from(&row.version))
-        .collect()
+        .for_each(|row| {
+            if !versions.contains(&row.version) {
+                versions.push(String::from(&row.version));
+            }
+            if !services_names.contains(&row.service_name) {
+                services_names.push(String::from(row.service_name));
+            }
+        });
+    (services_names, versions)
 }
 
-// fn get_services_and_versions_by_subject(rows: &Vec<CompatibilityRow>) {
-//     let mut map : HashMap<&String, (HashSet<&String>, HashSet<&String>)> =  HashMap::new();
-//     for row in rows.iter() {
-//         if !map.contains_key(&row.compatibility_subject){
-//             map.insert(&row.compatibility_subject, (HashSet::new(), HashSet::new()));
-//         }
-//         let a : (String, String) = (String::from("a"), String::from("b"));
-//         let b = String::from("a");
-//         map.get(&row.compatibility_subject).unwrap().0.insert(&b);
-//     }
-// }
+fn get_table_by_subject (subject: &str, rows: &Vec<CompatibilityRow>) -> Vec<Vec<String>> {
+    let (table_rows, table_cols) = get_table_rows_and_column_by_subject(subject, rows);
+    let rows_of_subject = rows.iter()
+        .filter(|row| row.compatibility_subject == subject);
+
+    let mut table : Vec<Vec<String>> = Vec::new();
+    let mut first_row : Vec<String> = Vec::new();
+    first_row.push(String::from(subject));
+    for v in table_cols.iter() {
+        first_row.push(String::from(v));
+    }
+    table.push(first_row);
+    let results = table_rows.iter().map(|service_name| {
+        let all_service_version : Vec<String> = rows_of_subject
+            .clone()
+            .filter(|item| item.service_name == service_name)
+            .map(|item| &item.version)
+            .cloned()
+            .collect();
+        let list_of_versions = table_cols
+            .iter()
+            .map(|version| all_service_version.contains(&version).to_string())
+            .collect::<Vec<String>>();
+        let mut versions_for_service : Vec<String> = Vec::new();
+        
+        versions_for_service.push(String::from(service_name));
+        for v in list_of_versions {
+            versions_for_service.push(String::from(v))
+        }
+        versions_for_service
+    })
+    .collect::<Vec<Vec<String>>>();
+    for r in results {
+        table.push(r);
+    }
+    table
+}
+type ServiceSupportedVersion = HashMap<String, bool>;
+
+fn get_services_and_versions_by_subject(rows: &Vec<CompatibilityRow>) {
+    
+}
+
+/**
+ {
+     "mongo": {
+        "crud-service": {"4.0": true, "4.4": true, "5.0", true}
+    }
+ }
+ */
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -92,11 +144,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         push_service_compatibility_rows(&mut compatibility_vec, service, &config.gitlab_base_api_host).await;        
     }
 
-    
+    let version_columns = get_table_by_subject("mongo", &compatibility_vec);
 
     let s = serde_yaml::to_string(&compatibility_vec)?;
 
-    println!("{}", s);
+    let table = MarkdownTable::new(
+        version_columns
+    );
+    println!("{}", table.as_markdown().unwrap());
+
+    let path = "output.md";
+    let mut output = File::create(path)?;
+    let line = table.as_markdown().unwrap();
+    write!(output, "{}", line);
 
     Ok(())
 }

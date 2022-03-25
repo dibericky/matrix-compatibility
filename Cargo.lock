@@ -12,6 +12,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.56"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4361135be9122e0870de935d7c439aef945b9f9ddd4199a553b5270b49c82a27"
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -400,6 +406,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "markdown-table"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08169f9c57e2f892b74359386451e10b4fd510504e3472afbc97362700a0ae86"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "matches"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -410,6 +425,7 @@ name = "matrix-compatility"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "markdown-table",
  "regex",
  "reqwest",
  "serde",
