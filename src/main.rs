@@ -1,12 +1,13 @@
 mod gitlab_api;
 mod gitlab_ci;
+mod table_builder;
 
-use std::{collections::{HashMap}};
+use table_builder::{CompatibilityRow};
 use markdown_table::MarkdownTable;
 use std::fs::File;
 use std::io::prelude::*;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 #[derive(PartialEq, Deserialize)]
 struct MatrixItem {
@@ -32,23 +33,10 @@ struct Config {
     services: Vec<Service>
 }
 
-#[derive(PartialEq, Serialize)]
-struct CompatibilityItem {
-    name: String,
-    compatible: Vec<String>
-}
-
 impl Service{
     async fn get_ci(&self, gitlab_base_host: &str) -> String {
         gitlab_api::get_file_raw(&gitlab_base_host, &self.ci.project_id, ".gitlab-ci.yml").await
     }
-}
-
-#[derive(PartialEq, Serialize)]
-struct CompatibilityRow<'a> {
-    service_name: &'a String,
-    compatibility_subject: String,
-    version: String
 }
 
 async fn push_service_compatibility_rows<'a> (compatibility_vec : &mut Vec<CompatibilityRow<'a>>, service: &'a Service, gitlab_base_host: &str) {
@@ -66,60 +54,6 @@ async fn push_service_compatibility_rows<'a> (compatibility_vec : &mut Vec<Compa
     };
 }
 
-fn get_table_rows_and_column_by_subject<'a, 'b > (subject: &str, rows: &'a Vec<CompatibilityRow>) -> (Vec<String>, Vec<String>) {
-    let mut versions : Vec<String> = Vec::new();
-    let mut services_names : Vec<String> = Vec::new();
-
-    rows.iter()
-        .filter(|row| row.compatibility_subject == subject)
-        .for_each(|row| {
-            if !versions.contains(&row.version) {
-                versions.push(String::from(&row.version));
-            }
-            if !services_names.contains(&row.service_name) {
-                services_names.push(String::from(row.service_name));
-            }
-        });
-    (services_names, versions)
-}
-
-fn get_table_by_subject (subject: &str, rows: &Vec<CompatibilityRow>) -> Vec<Vec<String>> {
-    let (table_rows, table_cols) = get_table_rows_and_column_by_subject(subject, rows);
-    let rows_of_subject = rows.iter()
-        .filter(|row| row.compatibility_subject == subject);
-
-    let mut table : Vec<Vec<String>> = Vec::new();
-    let mut first_row : Vec<String> = Vec::new();
-    first_row.push(String::from(subject));
-    for v in table_cols.iter() {
-        first_row.push(String::from(v));
-    }
-    table.push(first_row);
-    let results = table_rows.iter().map(|service_name| {
-        let all_service_version : Vec<String> = rows_of_subject
-            .clone()
-            .filter(|item| item.service_name == service_name)
-            .map(|item| &item.version)
-            .cloned()
-            .collect();
-        let list_of_versions = table_cols
-            .iter()
-            .map(|version| all_service_version.contains(&version).to_string())
-            .collect::<Vec<String>>();
-        let mut versions_for_service : Vec<String> = Vec::new();
-        
-        versions_for_service.push(String::from(service_name));
-        for v in list_of_versions {
-            versions_for_service.push(String::from(v))
-        }
-        versions_for_service
-    })
-    .collect::<Vec<Vec<String>>>();
-    for r in results {
-        table.push(r);
-    }
-    table
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -132,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // TODO: for-each subject
-    let version_columns = get_table_by_subject("mongo", &compatibility_vec);
+    let version_columns = table_builder::get_table_by_subject("mongo", &compatibility_vec);
 
     let table = MarkdownTable::new(
         version_columns
@@ -146,4 +80,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
