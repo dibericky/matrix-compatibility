@@ -1,9 +1,8 @@
-use regex::Regex;
+mod gitlab_api;
+mod gitlab_ci;
 
-use std::str::Split;
-use std::env;
+use std::collections::{HashMap, HashSet};
 
-use serde_yaml::Value;
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Deserialize)]
@@ -36,100 +35,69 @@ struct CompatibilityItem {
     compatible: Vec<String>
 }
 
-#[derive(PartialEq, Serialize)]
-struct ServiceCompatibility {
-    name: String,
-    compatibility: Vec<CompatibilityItem>
-}
-
-
-fn get_matrix (pipeline: &str, path_matrix: String) -> Vec<String> {
-    let deserialized_map: Value = serde_yaml::from_str(&pipeline).unwrap();
-    let path_iterator : Split<char> = path_matrix.split('.');
-
-    let mut current_value: &Value = &deserialized_map;
-    for step in path_iterator {
-        let rg_w_named = Regex::new(r"(?P<field>[a-zA-Z_]+)\[(?P<index>\d+)\]$").unwrap();
-        let matched = rg_w_named.captures(step);
-        if matched.is_none() {
-            current_value = current_value.get(step).unwrap();
-            continue
-        }
-        let matched = matched.unwrap();
-        let index = matched.name("index").unwrap().as_str();
-        let index :usize = index.parse().unwrap();
-        let field_name = matched.name("field").unwrap().as_str();
-        let array = current_value.get(field_name).unwrap();
-        let sequence = array.as_sequence().unwrap();
-        current_value = sequence.get(index).unwrap();
-    }
-    
-    let mut vec_string : Vec<String> = Vec::new();
-
-    for item in current_value.as_sequence().unwrap().to_vec() {
-        vec_string.push(String::from(item.as_str().unwrap()));
-    }
-   
-    vec_string
-}
-
 impl Service{
     async fn get_ci(&self, gitlab_base_host: &str) -> String {
-        let gitlab_token  = env::var("GITLAB_TOKEN").expect("$GITLAB_TOKEN is not set");
-
-        let mut api_url = gitlab_base_host.to_owned();
-        api_url.push_str("/api/v4/projects/:projectId/repository/files/:filePath/raw");
-        api_url = api_url
-            .replacen(":projectId", &self.ci.project_id, 1)
-            .replacen(":filePath", ".gitlab-ci.yml", 1);
-        get_pipeline_ci(&api_url, &gitlab_token).await
+        gitlab_api::get_file_raw(&gitlab_base_host, &self.ci.project_id, ".gitlab-ci.yml").await
     }
 }
 
-async fn get_service_matrix (service: Service, gitlab_base_host: &str) -> ServiceCompatibility {
+#[derive(PartialEq, Serialize)]
+struct CompatibilityRow<'a> {
+    service_name: &'a String,
+    compatibility_subject: String,
+    version: String
+}
+
+async fn push_service_compatibility_rows<'a> (compatibility_vec : &mut Vec<CompatibilityRow<'a>>, service: &'a Service, gitlab_base_host: &str) {
     let pipeline = service.get_ci(gitlab_base_host).await;
-    let mut compatibility_vec : Vec<CompatibilityItem> = Vec::new();
-    for item in service.matrix {
-        let result = get_matrix(&pipeline, item.path);
-        compatibility_vec.push(CompatibilityItem{
-            name: item.name,
-            compatible: result
-        })
-    }
-    ServiceCompatibility{
-        name: service.name,
-        compatibility: compatibility_vec
-    }
+    for item in &service.matrix {
+        let result = gitlab_ci::get_matrix(&pipeline, &item.path);
+        for version in result {
+            let row: CompatibilityRow<'a> = CompatibilityRow{
+                service_name: &service.name,
+                compatibility_subject: String::from(&item.name),
+                version,
+            };
+            compatibility_vec.push(row);
+        };
+    };
 }
+
+fn get_services_supported_version_by_subject (subject: &str, rows: &Vec<CompatibilityRow>) -> Vec<String> {
+    rows.iter()
+        .filter(|row| row.compatibility_subject == subject)
+        .map(|row| String::from(&row.version))
+        .collect()
+}
+
+// fn get_services_and_versions_by_subject(rows: &Vec<CompatibilityRow>) {
+//     let mut map : HashMap<&String, (HashSet<&String>, HashSet<&String>)> =  HashMap::new();
+//     for row in rows.iter() {
+//         if !map.contains_key(&row.compatibility_subject){
+//             map.insert(&row.compatibility_subject, (HashSet::new(), HashSet::new()));
+//         }
+//         let a : (String, String) = (String::from("a"), String::from("b"));
+//         let b = String::from("a");
+//         map.get(&row.compatibility_subject).unwrap().0.insert(&b);
+//     }
+// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let f = std::fs::File::open("config.yml").unwrap();
     let config : Config = serde_yaml::from_reader(f).unwrap();
 
-    let mut result : Vec<ServiceCompatibility> = Vec::new();
-
-    for service in config.services {
-        let service_matrix = get_service_matrix(service, &config.gitlab_base_api_host).await;
-        
-        result.push(service_matrix)
+    let mut compatibility_vec : Vec<CompatibilityRow> = Vec::new();
+    for service in &config.services {
+        push_service_compatibility_rows(&mut compatibility_vec, service, &config.gitlab_base_api_host).await;        
     }
-    let s = serde_yaml::to_string(&result)?;
+
+    
+
+    let s = serde_yaml::to_string(&compatibility_vec)?;
+
     println!("{}", s);
+
     Ok(())
 }
 
-async fn get_pipeline_ci (ci_url: &str, token: &str) -> String {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(ci_url)
-        .header("Private-Token", token)
-        // confirm the request using send()
-        .send()
-        .await
-        // the rest is the same!
-        .unwrap()
-        .text()
-        .await;
-    response.unwrap()
-}
