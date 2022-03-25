@@ -57,6 +57,7 @@ async fn push_service_compatibility_rows<'a> (compatibility_vec : &mut Vec<Compa
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // TODO: make config file path configurable by env
     let f = std::fs::File::open("config.yml").unwrap();
     let config : Config = serde_yaml::from_reader(f).unwrap();
 
