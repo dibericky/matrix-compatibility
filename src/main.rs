@@ -4,7 +4,6 @@ mod table_builder;
 mod env_manager;
 
 use table_builder::{CompatibilityRow};
-use markdown_table::MarkdownTable;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -55,6 +54,14 @@ async fn push_service_compatibility_rows<'a> (compatibility_vec : &mut Vec<Compa
     };
 }
 
+// async fn config_to_compatibility_vec (config: &Config) -> Vec<CompatibilityRow> {
+//     let mut compatibility_vec : Vec<CompatibilityRow> = Vec::new();
+//     for service in &config.services {
+//         push_service_compatibility_rows(&mut compatibility_vec, service, &config.gitlab_base_api_host).await;        
+//     }
+//     compatibility_vec
+// }
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -71,15 +78,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: for-each subject
     let version_columns = table_builder::get_table_by_subject("mongo", &compatibility_vec);
 
-    let table = MarkdownTable::new(
-        version_columns
-    );
-    println!("{}", table.as_markdown().unwrap());
+    let md_table = table_builder::as_markdown(version_columns);
+    println!("{}", md_table);
 
-    let path = "output.md";
-    let mut output = File::create(path)?;
-    let line = table.as_markdown().unwrap();
-    write!(output, "{}", line).unwrap();
+    let mut output = File::create("output.md")?;
+    write!(output, "{}", md_table).unwrap();
 
     Ok(())
 }

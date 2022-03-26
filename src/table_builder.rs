@@ -1,4 +1,5 @@
 use serde::{Serialize};
+use markdown_table::MarkdownTable;
 
 #[derive(PartialEq, Serialize)]
 struct CompatibilityItem {
@@ -66,6 +67,13 @@ pub fn get_table_by_subject (subject: &str, rows: &Vec<CompatibilityRow>) -> Vec
         table.push(r);
     }
     table
+}
+
+pub fn as_markdown (table: Vec<Vec<String>>) -> String {
+    let table = MarkdownTable::new(
+        table
+    );
+    table.as_markdown().unwrap()
 }
 
 #[cfg(test)]
