@@ -26,10 +26,10 @@ fn get_list_of_version_from_matrix(matrix_value: &Value) -> Vec<String> {
 
     for item in matrix_value.as_sequence().unwrap().to_vec() {
         let version = item.as_str().unwrap();
-        let version = match Regex::new(r"^(\w+:)?(?P<version>[\d\.]+)$")
+        let captured = Regex::new(r"^(\w+:)?(?P<version>[\d\.]+)$")
             .unwrap()
-            .captures(version)
-        {
+            .captures(version);
+        let version = match captured {
             None => version,
             Some(v) => v.name("version").unwrap().as_str(),
         };
