@@ -54,13 +54,13 @@ async fn push_service_compatibility_rows<'a> (compatibility_vec : &mut Vec<Compa
     };
 }
 
-// async fn config_to_compatibility_vec (config: &Config) -> Vec<CompatibilityRow> {
-//     let mut compatibility_vec : Vec<CompatibilityRow> = Vec::new();
-//     for service in &config.services {
-//         push_service_compatibility_rows(&mut compatibility_vec, service, &config.gitlab_base_api_host).await;        
-//     }
-//     compatibility_vec
-// }
+async fn config_to_compatibility_vec<'a > (config: &'a Config) -> Vec<CompatibilityRow<'a>> {
+    let mut compatibility_vec : Vec<CompatibilityRow> = Vec::new();
+    for service in &config.services {
+        push_service_compatibility_rows(&mut compatibility_vec, service, &config.gitlab_base_api_host).await;        
+    }
+    compatibility_vec
+}
 
 
 #[tokio::main]
@@ -70,10 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let f = File::open(config_file_path).unwrap();
     let config : Config = serde_yaml::from_reader(f).unwrap();
 
-    let mut compatibility_vec : Vec<CompatibilityRow> = Vec::new();
-    for service in &config.services {
-        push_service_compatibility_rows(&mut compatibility_vec, service, &config.gitlab_base_api_host).await;        
-    }
+    let compatibility_vec : Vec<CompatibilityRow> = config_to_compatibility_vec(&config).await;
 
     // TODO: for-each subject
     let version_columns = table_builder::get_table_by_subject("mongo", &compatibility_vec);
