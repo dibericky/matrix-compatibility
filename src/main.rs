@@ -62,6 +62,17 @@ async fn config_to_compatibility_vec<'a > (config: &'a Config) -> Vec<Compatibil
     compatibility_vec
 }
 
+fn get_list_of_subjects (config: &Config) -> Vec<&String> {
+    let mut subjects : Vec<&String> = vec![];
+    config.services.iter().for_each(|service| {
+        service.matrix.iter().for_each(|matrix|{
+            if !subjects.contains(&&matrix.name) {
+                subjects.push(&matrix.name);
+            }
+        })
+    });
+    subjects
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -72,14 +83,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let compatibility_vec : Vec<CompatibilityRow> = config_to_compatibility_vec(&config).await;
 
-    // TODO: for-each subject
-    let version_columns = table_builder::get_table_by_subject("mongo", &compatibility_vec);
+    let list_subjects = get_list_of_subjects(&config);
+    for subject in list_subjects {
+        let version_columns = table_builder::get_table_by_subject(subject, &compatibility_vec);
 
-    let md_table = table_builder::as_markdown(version_columns);
-    println!("{}", md_table);
-
-    let mut output = File::create("output.md")?;
-    write!(output, "{}", md_table).unwrap();
-
+        let md_table = table_builder::as_markdown(version_columns);
+        println!("{}", subject);
+        println!("{}", md_table);
+    
+        let mut output_file_name = String::from(subject);
+        output_file_name.push_str("_output.md");
+        let mut output = File::create(output_file_name)?;
+        write!(output, "{}", md_table).unwrap();
+    }
+   
     Ok(())
 }
