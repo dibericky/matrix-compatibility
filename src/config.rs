@@ -23,7 +23,7 @@ pub struct Service {
 
 impl Service {
     pub async fn get_ci(&self, gitlab_base_host: &str) -> String {
-        gitlab_api::get_file_raw(&gitlab_base_host, &self.ci.project_id, ".gitlab-ci.yml").await
+        gitlab_api::get_file_raw(gitlab_base_host, &self.ci.project_id, ".gitlab-ci.yml").await
     }
 }
 
@@ -65,12 +65,12 @@ impl Config {
         }
     }
 
-    pub async fn config_to_compatibility_vec<'a>(&'a self) -> Vec<CompatibilityRow<'a>> {
+    pub async fn config_to_compatibility_vec(&self) -> Vec<CompatibilityRow<'_>> {
         let mut compatibility_vec: Vec<CompatibilityRow> = Vec::new();
         for service in &self.services {
             Config::push_service_compatibility_rows(
                 &mut compatibility_vec,
-                &service,
+                service,
                 &self.gitlab_base_api_host,
             )
             .await;

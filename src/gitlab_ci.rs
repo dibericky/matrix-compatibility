@@ -24,7 +24,7 @@ fn step_into_array<'a>(current: &'a Value, field_name: &str, index: usize) -> &'
 fn get_list_of_version_from_matrix(matrix_value: &Value) -> Vec<String> {
     let mut vec_string: Vec<String> = Vec::new();
 
-    for item in matrix_value.as_sequence().unwrap().to_vec() {
+    for item in matrix_value.as_sequence().unwrap() {
         let version = item.as_str().unwrap();
         let captured = Regex::new(r"^(\w+:)?(?P<version>[\d\.]+)$")
             .unwrap()
@@ -39,7 +39,7 @@ fn get_list_of_version_from_matrix(matrix_value: &Value) -> Vec<String> {
 }
 
 pub fn get_matrix(pipeline: &str, path_matrix: &str) -> Vec<String> {
-    let deserialized_map: Value = serde_yaml::from_str(&pipeline).unwrap();
+    let deserialized_map: Value = serde_yaml::from_str(pipeline).unwrap();
     let path_iterator: Split<char> = path_matrix.split('.');
 
     let mut current_value: &Value = &deserialized_map;
@@ -50,7 +50,7 @@ pub fn get_matrix(pipeline: &str, path_matrix: &str) -> Vec<String> {
             continue;
         }
         let (field_name, index) = get_field_and_index(matched);
-        current_value = step_into_array(current_value, &field_name, index);
+        current_value = step_into_array(current_value, field_name, index);
     }
 
     let vec_string: Vec<String> = get_list_of_version_from_matrix(current_value);

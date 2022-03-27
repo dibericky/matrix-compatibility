@@ -14,9 +14,9 @@ pub struct CompatibilityRow<'a> {
     pub(crate) version: String,
 }
 
-fn get_table_rows_and_column_by_subject<'a, 'b>(
+fn get_table_rows_and_column_by_subject(
     subject: &str,
-    rows: &'a Vec<CompatibilityRow>,
+    rows: &[CompatibilityRow],
 ) -> (Vec<String>, Vec<String>) {
     let mut versions: Vec<String> = Vec::new();
     let mut services_names: Vec<String> = Vec::new();
@@ -27,22 +27,21 @@ fn get_table_rows_and_column_by_subject<'a, 'b>(
             if !versions.contains(&row.version) {
                 versions.push(String::from(&row.version));
             }
-            if !services_names.contains(&row.service_name) {
+            if !services_names.contains(row.service_name) {
                 services_names.push(String::from(row.service_name));
             }
         });
     (services_names, versions)
 }
 
-pub fn get_table_by_subject(subject: &str, rows: &Vec<CompatibilityRow>) -> Vec<Vec<String>> {
+pub fn get_table_by_subject(subject: &str, rows: &[CompatibilityRow]) -> Vec<Vec<String>> {
     let (table_rows, table_cols) = get_table_rows_and_column_by_subject(subject, rows);
     let rows_of_subject = rows
         .iter()
         .filter(|row| row.compatibility_subject == subject);
 
     let mut table: Vec<Vec<String>> = Vec::new();
-    let mut first_row: Vec<String> = Vec::new();
-    first_row.push(String::from(subject));
+    let mut first_row: Vec<String> = vec![String::from(subject)];
     for v in table_cols.iter() {
         first_row.push(String::from(v));
     }
@@ -58,13 +57,11 @@ pub fn get_table_by_subject(subject: &str, rows: &Vec<CompatibilityRow>) -> Vec<
                 .collect();
             let list_of_versions = table_cols
                 .iter()
-                .map(|version| all_service_version.contains(&version).to_string())
+                .map(|version| all_service_version.contains(version).to_string())
                 .collect::<Vec<String>>();
-            let mut versions_for_service: Vec<String> = Vec::new();
-
-            versions_for_service.push(String::from(service_name));
+            let mut versions_for_service: Vec<String> = vec![String::from(service_name)];
             for v in list_of_versions {
-                versions_for_service.push(String::from(v))
+                versions_for_service.push(v);
             }
             versions_for_service
         })
