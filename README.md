@@ -43,6 +43,6 @@ if you run:
 CONFIG_FILE_PATH=configs/config.yml GITLAB_TOKEN=MY_TOKEN cargo run
 ```
 
-will be returned:
+will be generated a file markdown as the following :
 
 <table><tr><td>mongo<td>4.0<td>4.4<td>5.0<tr><td>my-service<td>true<td>true<td>true<tr><td>another-service<td>true<td>true<td>false</table>
