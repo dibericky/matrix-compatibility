@@ -1,4 +1,4 @@
-use crate::env_manager;
+use crate::env_manager::{Env};
 
 mod gitlab_http_client {
     pub async fn get(ci_url: &str, token: &str) -> String {
@@ -28,7 +28,7 @@ mod gitlab_api_urls {
 }
 
 pub async fn get_file_raw(gitlab_base_host: &str, project_id: &str, file_path: &str) -> String {
-    let gitlab_token = env_manager::get_gitlab_token();
+    let gitlab_token = Env::get().gitlab_token;
     let api_url = gitlab_api_urls::get_file_raw(gitlab_base_host, project_id, file_path);
     gitlab_http_client::get(&api_url, &gitlab_token).await
 }

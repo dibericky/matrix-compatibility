@@ -8,6 +8,7 @@ use config::Config;
 use std::fs::File;
 use std::io::prelude::*;
 use table_builder::CompatibilityRow;
+use env_manager::Env;
 
 fn generate_output(subject: &str, md_table: &str) {
     println!("{}", subject);
@@ -20,9 +21,9 @@ fn generate_output(subject: &str, md_table: &str) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config_file_path = env_manager::get_config_file_path();
+    let env = Env::get();
 
-    let f = File::open(config_file_path).unwrap();
+    let f = File::open(env.config_file_path).unwrap();
     let config: Config = serde_yaml::from_reader(f).unwrap();
 
     let compatibility_vec: Vec<CompatibilityRow> = config.config_to_compatibility_vec().await;
