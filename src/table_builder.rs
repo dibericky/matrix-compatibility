@@ -1,5 +1,7 @@
+use std::cmp::Ordering;
 use markdown_table::MarkdownTable;
 use serde::Serialize;
+use version_compare::{Cmp, compare_to};
 
 #[derive(PartialEq, Serialize)]
 struct CompatibilityItem {
@@ -31,6 +33,11 @@ fn get_table_rows_and_column_by_subject(
                 services_names.push(String::from(row.service_name));
             }
         });
+    versions.sort_by(|a, b| if compare_to(a, b, Cmp::Le).unwrap() == true {
+        Ordering::Less
+    } else {
+        Ordering::Greater
+    });
     (services_names, versions)
 }
 
@@ -114,8 +121,8 @@ mod tests {
                 vec![String::from("service-1"), String::from("service-2")],
                 vec![
                     String::from("1.0.0"),
-                    String::from("2.5.0"),
-                    String::from("1.5.0")
+                    String::from("1.5.0"),
+                    String::from("2.5.0")
                 ],
             )
         );
