@@ -3,18 +3,19 @@ use crate::gitlab_ci;
 use crate::table_builder::CompatibilityRow;
 use serde::Deserialize;
 
-#[derive(PartialEq, Deserialize)]
+#[derive(PartialEq, Deserialize, Debug)]
 pub struct MatrixItem {
     pub path: String,
     pub name: String,
+    pub include: Option<usize>
 }
 
-#[derive(PartialEq, Deserialize)]
+#[derive(PartialEq, Deserialize, Debug)]
 pub struct GitlabCi {
     project_id: String,
 }
 
-#[derive(PartialEq, Deserialize)]
+#[derive(PartialEq, Deserialize, Debug)]
 pub struct Service {
     pub name: String,
     pub ci: GitlabCi,
@@ -27,7 +28,7 @@ impl Service {
     }
 }
 
-#[derive(PartialEq, Deserialize)]
+#[derive(PartialEq, Deserialize, Debug)]
 pub struct Config {
     pub gitlab_base_api_host: String,
     pub services: Vec<Service>,
@@ -53,7 +54,7 @@ impl Config {
     ) {
         let pipeline = service.get_ci(gitlab_base_host).await;
         for item in &service.matrix {
-            let result = gitlab_ci::get_matrix(&pipeline, &item.path);
+            let result = gitlab_ci::get_matrix(&pipeline, &item.path, item.include, gitlab_base_host).await;
             for version in result {
                 let row: CompatibilityRow<'a> = CompatibilityRow {
                     service_name: &service.name,

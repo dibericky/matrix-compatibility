@@ -1,6 +1,56 @@
+use futures::{Future, FutureExt};
 use regex::{Captures, Regex};
 use serde_yaml::Value;
-use std::str::Split;
+use std::{str::Split, pin::Pin};
+
+use crate::gitlab_api::get_file_raw;
+
+struct IncludeFromCi {
+    project: String,
+    file: String,
+    reference: String,
+    gitlab_base_host: String,
+}
+
+impl IncludeFromCi {
+    pub fn new(field: &Value, gitlab_base_host: &str) -> IncludeFromCi {
+        let project = field.get("project").unwrap().as_str().unwrap();
+        let file = field.get("file").unwrap().as_str().unwrap();
+        let reference = field.get("ref").unwrap().as_str().unwrap();
+        IncludeFromCi {
+            project: project.to_owned(),
+            file: file.to_owned(),
+            reference: reference.to_owned(),
+            gitlab_base_host: gitlab_base_host.to_owned(),
+        }
+    }
+
+    pub async fn fetch(&self) -> String {
+        let re_starting_slash = Regex::new(r"^/").unwrap();
+        let re_escape_slash = Regex::new(r"/").unwrap();
+
+        let file = re_starting_slash
+            .replace_all(&self.file, "")
+            .to_string();
+
+        let escaped_slash= "%2F";
+        let project = &self.project;
+        let project = re_escape_slash
+            .replace_all(&project, escaped_slash)
+            .to_string();
+
+        let file = re_escape_slash
+            .replace_all(&file, escaped_slash)
+            .to_string();
+
+        let raw = get_file_raw(
+            &self.gitlab_base_host, 
+            &project, 
+            &file
+        ).await;
+        raw
+    }
+}
 
 fn match_if_array_step(step: &str) -> Option<Captures> {
     let regex_array = Regex::new(r"(?P<field>[a-zA-Z_]+)\[(?P<index>\d+)\]$").unwrap();
@@ -38,11 +88,10 @@ fn get_list_of_version_from_matrix(matrix_value: &Value) -> Vec<String> {
     vec_string
 }
 
-pub fn get_matrix(pipeline: &str, path_matrix: &str) -> Vec<String> {
-    let deserialized_map: Value = serde_yaml::from_str(pipeline).unwrap();
+fn walk_matrix (map: &Value, path_matrix: &str) -> Vec<String> {
     let path_iterator: Split<char> = path_matrix.split('.');
 
-    let mut current_value: &Value = &deserialized_map;
+    let mut current_value: &Value = &map;
     for step in path_iterator {
         let matched = match_if_array_step(step);
         if matched.is_none() {
@@ -56,4 +105,17 @@ pub fn get_matrix(pipeline: &str, path_matrix: &str) -> Vec<String> {
     let vec_string: Vec<String> = get_list_of_version_from_matrix(current_value);
 
     vec_string
+}
+
+pub async fn get_matrix(pipeline: &str, path_matrix: &str, include: Option<usize>, gitlab_base_host: &str) -> Vec<String> {
+    let deserialized_map: Value = serde_yaml::from_str(pipeline).unwrap();
+    if let Some(index) = include {
+        let field = step_into_array(&deserialized_map, "include", index);
+        let include = IncludeFromCi::new(field, gitlab_base_host);
+        let raw_included = include.fetch().await;
+        let deserialized_map: Value = serde_yaml::from_str(&raw_included).unwrap();
+        let matrix = walk_matrix(&deserialized_map, path_matrix);
+        return matrix;
+    }
+    walk_matrix(&deserialized_map, path_matrix)
 }
