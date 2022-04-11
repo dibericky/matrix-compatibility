@@ -43,6 +43,13 @@ if you run:
 CONFIG_FILE_PATH=configs/config.yml GITLAB_TOKEN=MY_TOKEN cargo run
 ```
 
-will be generated a file markdown as the following :
+the script will retrieve data from the gitlab-ci of the repository up to two tags for each and will be generated a file markdown as the following :
 
-<table><tr><td>mongo<td>4.0<td>4.4<td>5.0<tr><td>my-service<td>true<td>true<td>true<tr><td>another-service<td>true<td>true<td>false</table>
+<table>
+<tr>
+<td>mongo<td>4.0<td>4.2<td>4.4<td>5.0
+<tr><td>my-service@v5.2.1<td>true<td>false<td>true<td>true
+<tr><td>my-service@v4.4.0<td>true<td>false<td>true<td>false
+<tr><td>another-service@v5.3.2<td>true<td>false<td>true<td>true
+<tr><td>another-service@v4.4.0<td>true<td>false<td>true<td>false
+</table>
