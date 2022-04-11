@@ -1,4 +1,6 @@
 use crate::env_manager::{Env};
+use serde::Deserialize;
+use serde_json;
 
 mod gitlab_http_client {
     pub async fn get(ci_url: &str, token: &str) -> String {
@@ -17,6 +19,11 @@ mod gitlab_http_client {
     }
 }
 
+#[derive(Deserialize)]
+pub struct GitlabCommitApi {
+    pub name: String
+}
+
 mod gitlab_api_urls {
     pub fn get_file_raw(gitlab_base_host: &str, project_id: &str, file_path: &str) -> String {
         let mut api_url = gitlab_base_host.to_owned();
@@ -24,6 +31,13 @@ mod gitlab_api_urls {
         api_url
             .replacen(":projectId", project_id, 1)
             .replacen(":filePath", file_path, 1)
+    }
+
+    pub fn get_tags(gitlab_base_host: &str, project_id: &str) -> String {
+        let mut api_url = gitlab_base_host.to_owned();
+        api_url.push_str("/api/v4/projects/:projectId/repository/tags");
+        api_url
+            .replacen(":projectId", project_id, 1)
     }
 }
 
@@ -33,6 +47,13 @@ pub async fn get_file_raw(gitlab_base_host: &str, project_id: &str, file_path: &
     gitlab_http_client::get(&api_url, &gitlab_token).await
 }
 
+pub async fn get_tags(gitlab_base_host: &str, project_id: &str) -> Vec<GitlabCommitApi> {
+    let gitlab_token = Env::get().gitlab_token;
+    let api_url = gitlab_api_urls::get_tags(gitlab_base_host, project_id);
+    let response = gitlab_http_client::get(&api_url, &gitlab_token).await;
+    let tags: Vec<GitlabCommitApi> = serde_json::from_str(&response).unwrap_or_default();
+    tags
+}
 #[cfg(test)]
 mod tests {
     use super::*;

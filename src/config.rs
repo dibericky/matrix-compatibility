@@ -26,6 +26,11 @@ impl Service {
     pub async fn get_ci(&self, gitlab_base_host: &str) -> String {
         gitlab_api::get_file_raw(gitlab_base_host, &self.ci.project_id, ".gitlab-ci.yml").await
     }
+
+    pub async fn get_tags(&self, gitlab_base_host: &str) -> Vec<String> {
+        let tags = gitlab_api::get_tags(gitlab_base_host, &self.ci.project_id).await;
+        tags.iter().map(|tag| tag.name.to_owned()).collect()   
+    }
 }
 
 #[derive(PartialEq, Deserialize, Debug)]
@@ -52,6 +57,8 @@ impl Config {
         service: &'a Service,
         gitlab_base_host: &str,
     ) {
+        let tags = service.get_tags(gitlab_base_host).await;
+        println!("{:?}", tags);
         let pipeline = service.get_ci(gitlab_base_host).await;
         for item in &service.matrix {
             let result = gitlab_ci::get_matrix(&pipeline, &item.path, item.include, gitlab_base_host).await;

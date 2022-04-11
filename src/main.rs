@@ -5,6 +5,11 @@ mod gitlab_ci;
 mod table_builder;
 
 use config::Config;
+use regex::Regex;
+use semver::{Version, Prerelease, BuildMetadata};
+use version_compare::{compare_to, Cmp};
+use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use table_builder::CompatibilityRow;
@@ -18,6 +23,8 @@ fn generate_output(subject: &str, md_table: &str) {
     let mut output = File::create(output_file_name).unwrap();
     write!(output, "{}", md_table).unwrap();
 }
+
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
