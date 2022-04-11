@@ -9,11 +9,11 @@ struct CompatibilityItem {
     compatible: Vec<String>,
 }
 
-#[derive(PartialEq, Serialize)]
-pub struct CompatibilityRow<'a> {
-    pub(crate) service_name: &'a String,
+#[derive(PartialEq, Serialize, Debug)]
+pub struct CompatibilityRow {
+    pub(crate) service_name: String,
     pub(crate) compatibility_subject: String,
-    pub(crate) version: String,
+    pub(crate) version: Option<String>,
 }
 
 fn get_table_rows_and_column_by_subject(
@@ -26,11 +26,13 @@ fn get_table_rows_and_column_by_subject(
     rows.iter()
         .filter(|row| row.compatibility_subject == subject)
         .for_each(|row| {
-            if !versions.contains(&row.version) {
-                versions.push(String::from(&row.version));
+            if let Some(version) = &row.version {
+                if !versions.contains(version) {
+                    versions.push(String::from(version));
+                }
             }
-            if !services_names.contains(row.service_name) {
-                services_names.push(String::from(row.service_name));
+            if !services_names.contains(&row.service_name) {
+                services_names.push(String::from(&row.service_name));
             }
         });
     versions.sort_by(|a, b| if compare_to(a, b, Cmp::Le).unwrap() == true {
@@ -58,8 +60,14 @@ pub fn get_table_by_subject(subject: &str, rows: &[CompatibilityRow]) -> Vec<Vec
         .map(|service_name| {
             let all_service_version: Vec<String> = rows_of_subject
                 .clone()
-                .filter(|item| item.service_name == service_name)
-                .map(|item| &item.version)
+                .filter(|item| &item.service_name == service_name)
+                .filter_map(|item| {
+                    if let Some(version) = &item.version {
+                        Some(version)
+                    } else {
+                        None
+                    }
+                })
                 .cloned()
                 .collect();
             let list_of_versions = table_cols
@@ -95,24 +103,24 @@ mod tests {
         let service_2 = String::from("service-2");
         let rows = vec![
             CompatibilityRow {
-                service_name: &service_1,
+                service_name: service_1.to_owned(),
                 compatibility_subject: String::from("mongo"),
-                version: String::from("1.0.0"),
+                version: Some(String::from("1.0.0")),
             },
             CompatibilityRow {
-                service_name: &service_1,
+                service_name: service_1.to_owned(),
                 compatibility_subject: String::from("kafka"),
-                version: String::from("2.0.0"),
+                version: Some(String::from("2.0.0")),
             },
             CompatibilityRow {
-                service_name: &service_2,
+                service_name: service_2.to_owned(),
                 compatibility_subject: String::from("mongo"),
-                version: String::from("2.5.0"),
+                version: Some(String::from("2.5.0")),
             },
             CompatibilityRow {
-                service_name: &service_1,
+                service_name: service_1.to_owned(),
                 compatibility_subject: String::from("mongo"),
-                version: String::from("1.5.0"),
+                version: Some(String::from("1.5.0")),
             },
         ];
         assert_eq!(

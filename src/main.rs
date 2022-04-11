@@ -3,6 +3,7 @@ mod env_manager;
 mod gitlab_api;
 mod gitlab_ci;
 mod table_builder;
+mod versions;
 
 use config::Config;
 use regex::Regex;

@@ -3,10 +3,12 @@ use serde::Deserialize;
 use serde_json;
 
 mod gitlab_http_client {
-    pub async fn get(ci_url: &str, token: &str) -> String {
+    pub async fn get(ci_url: &str, token: &str, query: Option<Vec<(&str, &str)>>) -> String {
         let client = reqwest::Client::new();
+        let query = query.unwrap_or(Vec::new());
         let response = client
             .get(ci_url)
+            .query(&query)
             .header("Private-Token", token)
             // confirm the request using send()
             .send()
@@ -41,16 +43,20 @@ mod gitlab_api_urls {
     }
 }
 
-pub async fn get_file_raw(gitlab_base_host: &str, project_id: &str, file_path: &str) -> String {
+pub async fn get_file_raw(gitlab_base_host: &str, project_id: &str, file_path: &str, git_ref: Option<&str>) -> String {
     let gitlab_token = Env::get().gitlab_token;
     let api_url = gitlab_api_urls::get_file_raw(gitlab_base_host, project_id, file_path);
-    gitlab_http_client::get(&api_url, &gitlab_token).await
+    let query : Option<Vec<(&str, &str)>> = match git_ref {
+        Some(the_ref) => Some(vec![("ref", the_ref)]),
+        None => None
+    };
+    gitlab_http_client::get(&api_url, &gitlab_token, query).await
 }
 
 pub async fn get_tags(gitlab_base_host: &str, project_id: &str) -> Vec<GitlabCommitApi> {
     let gitlab_token = Env::get().gitlab_token;
     let api_url = gitlab_api_urls::get_tags(gitlab_base_host, project_id);
-    let response = gitlab_http_client::get(&api_url, &gitlab_token).await;
+    let response = gitlab_http_client::get(&api_url, &gitlab_token, None).await;
     let tags: Vec<GitlabCommitApi> = serde_json::from_str(&response).unwrap_or_default();
     tags
 }
