@@ -60,7 +60,12 @@ impl Config {
     ) {
         let tags = service.get_tags(gitlab_base_host).await;
         let majors = get_major_versions(&tags);
-        let majors = majors[0..2].to_owned();
+        let majors = if majors.len() > 1 {
+            majors[0..2].to_owned()
+        } else  if majors.len() == 1 {
+            majors[0..1].to_owned()
+        } else { Vec::new() };
+
         for tag_major in majors {
             let service_name_with_version = format!("{}@{}", &service.name, &tag_major);
             let pipeline = service.get_ci(gitlab_base_host, Some(&tag_major)).await;
